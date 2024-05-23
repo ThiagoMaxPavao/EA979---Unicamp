@@ -9,9 +9,8 @@ const 	rendSize 	= new THREE.Vector2();
 const 	clock 		= new THREE.Clock();
 const   pointer 	= new THREE.Vector2();
 
-var mX, mY, mP;
-var 	controls,
-		scene,
+var mP;
+var 	scene,
 		camera,
 		renderer,
 		curObj = null;
@@ -51,7 +50,7 @@ function main() {
 	dirLight.castShadow = true
 	scene.add(dirLight)
 
-	var objMesh = new THREE.Mesh 	( 	new THREE.TorusKnotGeometry(0.5, 0.2), 
+	var objMesh = new THREE.Mesh 	( 	new THREE.TorusKnotGeometry(0.5, 0.2, 128, 256), 
 										new THREE.MeshLambertMaterial( { color: 0xff00ff } )
 									); 
 	objMesh.name 	= "TorusKnot";
@@ -99,12 +98,6 @@ function initGUI() {
 	
 	mP = gui.add( controls, 'mousePressed');
 	mP.disable(true);
-
-	mX = gui.add( controls, 'mousePosX', -1.0, 1.0);
-	mX.disable(true);
-
-	mY = gui.add( controls, 'mousePosY', -1.0, 1.0);
-	mY.disable(true);
 
 	gui.open();
 };
