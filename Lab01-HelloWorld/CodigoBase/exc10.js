@@ -50,7 +50,7 @@ function main() {
 	dirLight.castShadow = true
 	scene.add(dirLight)
 
-	var objMesh = new THREE.Mesh 	( 	new THREE.TorusKnotGeometry(0.5, 0.2, 128, 256), 
+	var objMesh = new THREE.Mesh 	( 	new THREE.TorusKnotGeometry(0.5, 0.2, 600, 3), 
 										new THREE.MeshLambertMaterial( { color: 0xff00ff } )
 									); 
 	objMesh.name 	= "TorusKnot";
@@ -156,8 +156,8 @@ function anime() {
 		curObj.rotateZ((pointer.y*3) * Math.PI / 180.0);
 	}
 	else {
-		curObj.rotateY((delta*100) * Math.PI / 180.0);
-		curObj.rotateZ((delta*60) * Math.PI / 180.0);
+		curObj.rotateY((delta*50) * Math.PI / 180.0);
+		curObj.rotateZ((delta*30) * Math.PI / 180.0);
 	}
 	
 	renderer.clear();

@@ -58,7 +58,7 @@ function geraImagem() {
 						wireframe  		: false,
 					} );
 
-	var plane 			= new THREE.Mesh( 	new THREE.PlaneBufferGeometry(20.0, 20.0, 10, 10),
+	var plane 			= new THREE.Mesh( 	new THREE.PlaneBufferGeometry(20.0, 20.0, 3, 3),
 											shaderMat );
 	plane.name = "imagem";
 	scene.add( plane );	
