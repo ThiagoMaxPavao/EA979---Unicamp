@@ -41,7 +41,6 @@ function main() {
 
     geraTerreno();
 
-    requestAnimationFrame(anime);
 
 }
 
@@ -61,9 +60,10 @@ function geraTerreno() {
 					} );
 
 
-    const terreno	= new THREE.Mesh 	(	new THREE.PlaneGeometry( 100, 100, 30, 30 ), 
+    const terreno	= new THREE.Mesh 	(	new THREE.PlaneGeometry( 100, 100, 100, 100 ), 
     										shaderMat
-										); 
+										);
+				
 	terreno.rotateX(-90.0 * Math.PI / 180.0);
     terreno.name 	= "terreno";
 	scene.add( terreno );
