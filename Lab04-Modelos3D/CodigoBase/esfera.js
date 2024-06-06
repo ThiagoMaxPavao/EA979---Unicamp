@@ -77,7 +77,6 @@ function buildScene() {
 	const nTheta = 10;
 	const nPhi   = 20;
 
-	// positions.push(0,0,r);
 	for(let iTheta = 0; iTheta <= nTheta; iTheta++) {
 		for(let iPhi = 0; iPhi < nPhi; iPhi++) {
 			let theta = iTheta * Math.PI / nTheta
@@ -86,13 +85,7 @@ function buildScene() {
 			positions.push(r*Math.cos(phi)*Math.sin(theta), r*Math.sin(phi)*Math.sin(theta), r*Math.cos(theta));
 		}
 	}
-	// positions.push(0,0,-r);
-
-	// for(let iPhi = 0; iPhi < nPhi-1; iPhi++) {
-	// 	indices.push(iPhi, 0, iPhi+1);
-	// }
-	// indices.push(nPhi-1, 0, 1);
-
+	
 	for(let iTheta = 0; iTheta < nTheta; iTheta++) {
 		for(let iPhi = 0; iPhi < nPhi; iPhi++) {
 			let current = iTheta * nPhi + iPhi;
@@ -110,16 +103,12 @@ function buildScene() {
 		}
 	}
 
-	// for(let iPhi = 0; iPhi < nPhi; iPhi++) {
-	// 	indices.push(iPhi, positions.length-1, (iPhi+1)%nPhi);
-	// }
-
 	var geometry = new THREE.BufferGeometry(); 
 
 	geometry.setIndex( indices );
 	geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
 
-	const sphere = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial( { color: 0xffffff, wireframe: false } )); 
+	const sphere = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial( { color: 0xffffff, wireframe: true } )); 
 	sphere.name = "esfera"
 
 	scene.add( sphere );
