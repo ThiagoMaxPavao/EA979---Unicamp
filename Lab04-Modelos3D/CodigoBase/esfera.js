@@ -15,6 +15,8 @@ var scene,
 function main() {
 
 	renderer = new THREE.WebGLRenderer();
+	renderer.shadowMap.enabled = true;
+	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 	renderer.setClearColor(new THREE.Color(0.0, 0.0, 0.0));
 
@@ -25,16 +27,17 @@ function main() {
 
 	document.body.appendChild(renderer.domElement);
 
-	scene 	= new THREE.Scene();
+	scene = new THREE.Scene();
 
 	camera = new THREE.OrthographicCamera( -1.0, 1.0, 1.0, -1.0, -1.0, 1.0 );
 	scene.add( camera );
-
-	// luzes
-	scene.add(new THREE.AmbientLight(0xaaaaaa))
 	
-	const dirLight = new THREE.DirectionalLight(0xaaaaaa)
-	dirLight.position.set(5, 12, 8)
+	// luzes
+	scene.add(new THREE.AmbientLight(0x555555))
+	
+	const dirLight = new THREE.DirectionalLight(0x777777)
+	dirLight.position.set(5, 9, 10)
+	dirLight.castShadow = true
 	scene.add(dirLight)
 
 	buildScene();
@@ -69,6 +72,15 @@ function buildScene() {
 
 	const axis = new THREE.AxesHelper();
 	scene.add(axis);
+	
+    const terreno	= new THREE.Mesh 	(	new THREE.PlaneGeometry( 100, 100, 30, 30 ), 
+    										new THREE.MeshStandardMaterial(	{ color:0xFFFFFF })
+										); 
+	terreno.rotateX(-60.0 * Math.PI / 180.0);
+	terreno.position.z = -1
+    terreno.name 	= "terreno";
+	terreno.receiveShadow = true;
+	scene.add( terreno );
 
 	const positions 	= [];
 	const indices		= [];
@@ -98,8 +110,8 @@ function buildScene() {
 				next_below -= nPhi;
 			}
 
-			indices.push(current, next, below);
-			indices.push(next, next_below, below);
+			indices.push(next, current, below);
+			indices.push(next_below, next, below);
 		}
 	}
 
@@ -107,36 +119,13 @@ function buildScene() {
 
 	geometry.setIndex( indices );
 	geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+	geometry.computeVertexNormals();
 
-	const sphere = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial( { color: 0xffffff, wireframe: true } )); 
+	const sphere = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({color:0xff00ff})); 
 	sphere.name = "esfera"
+	sphere.castShadow = true;
 
 	scene.add( sphere );
-
-	// var materials = 	[ 	new THREE.MeshBasicMaterial({color:0x0000FF}), 	// Front Face
-	// 						new THREE.MeshBasicMaterial({color:0xFF00FF}), 	// Back Face
-	// 						new THREE.MeshBasicMaterial({color:0x00FF00}), 	// Top Face
-	// 						new THREE.MeshBasicMaterial({color:0x00FFFF}), 	// Bottom Face
-	// 						new THREE.MeshBasicMaterial({color:0xFF0000}),	// Right Face 
-	// 						new THREE.MeshBasicMaterial({color:0xFFFF00}) 	// Left Face
-	// 					]; 
-	
-	// const widthSeg = 16;
-	// const heightSeg = 6;
-	// const geometry = new THREE.SphereGeometry( 0.5, widthSeg, heightSeg); 
-	
-	// const trianglesPerGroup = 4;
-	// const totalGroups = 2*widthSeg*heightSeg / trianglesPerGroup;
-	
-	// geometry.clearGroups();
-	// for(let i = 0; i < totalGroups; i++) {
-	// 	geometry.addGroup(i*trianglesPerGroup*3, trianglesPerGroup*3, i % materials.length);
-	// }
-
-	// const sphere = new THREE.Mesh( geometry, materials );
-	// sphere.name = "esfera"
-
-	// scene.add( sphere );
 }
 
 /// ***************************************************************
