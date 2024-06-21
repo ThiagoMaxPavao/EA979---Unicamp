@@ -50,13 +50,14 @@ function main() {
     axis.name = "eixos";
     scene.add(axis);
 
-	var material = new THREE.MeshStandardMaterial({
+	var material = new THREE.MeshPhongMaterial({
 		color: 0xffffff,
 		wireframe: false,
 		map: new THREE.TextureLoader().load("./textures/earth_texture.jpg"),
-		// normalMap: new THREE.TextureLoader().load("./textures/earth_normal.tif"),
-		// bumpMap: new THREE.TextureLoader().load("./textures/earth_bump.png"),
-		// bumpScale: 1
+		// displacementMap: new THREE.TextureLoader().load("./textures/earth_normal.tif"),
+		// normalMapType: THREE.TangentSpaceNormalMap,
+		displacementMap: new THREE.TextureLoader().load("./textures/earth_bump_low_2.png"),
+		displacementScale: .1
 	});
 
 	var objMesh = new THREE.Mesh 	( 	new THREE.SphereGeometry(1, 50, 50), 
