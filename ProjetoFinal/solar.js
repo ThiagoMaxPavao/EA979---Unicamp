@@ -5,7 +5,8 @@ import { OrbitControls } from '../Assets/scripts/three.js/examples/jsm/controls/
 
 const 	gui 		= new GUI();
 const 	clock 		= new THREE.Clock();
-const 	rendSize 	= new THREE.Vector2();
+
+const texturePath = "./textures/"
 
 var 	controls, 
 		scene,
@@ -18,6 +19,25 @@ var timeScale, spaceScale;
 const timeConst = 2 * Math.PI / 3600;
 
 const loader = new THREE.TextureLoader();
+
+const sunInfo = {
+	name: "sun",
+	colorMap: "sun_map.jpg",
+	tilt: 7.25,
+	radius: 696340,
+	rotationPeriod: 648,
+}
+
+const moonInfo = {
+	name: "moon",
+	colorMap: "moon_map.jpg",
+	bumpMap: "moon_bump.jpg",
+	bumpScale: 1,
+	tilt: 6.7,
+	radius: 1737.5,
+	earthDistance: 384400,
+	rotationPeriod: 655.2
+}
 
 const planetsInfo = [
 	{
@@ -149,13 +169,38 @@ function main() {
 	scene.add(pointLight);
 
 	// add objects
-	var axis = new THREE.AxesHelper(0.8);
-    axis.name = "eixos";
-    scene.add(axis);
+
+	// scale down distance/radius numbers
+	const scaleDownFactor = 1e7;
+
+	sunInfo.radius /= scaleDownFactor;
+	moonInfo.radius /= scaleDownFactor;
+	moonInfo.earthDistance /= scaleDownFactor;
+
+	// add sun
+	const group = new THREE.Group();
+	group.rotation.z = sunInfo.tilt * Math.PI / 180;
+
+	const sun = new THREE.Mesh(sphereSharedGeometry, new THREE.MeshBasicMaterial({map: loader.load(texturePath + sunInfo.colorMap), transparent: true, opacity: 1}));
+	sun.scale.setScalar(sunInfo.radius);
+	sun.updateMatrix();
+	group.add(sun);
+
+	sunInfo.rotationAngle = Math.random() * 2 * Math.PI;
+	sunInfo.meshGroup  = group;
+	sunInfo.sunMesh = sun;
+	scene.add(group)
+
+	// add moon
+
+	// add planets
+	
+	planetsInfo.forEach((info, index) => {
+		info.radius /= scaleDownFactor;
+		info.sunDistance /= scaleDownFactor;
+	});
 
 	planetsInfo.forEach((info, index) => {
-		info.radius /= 1e7;
-		info.sunDistance /= 1e7;
 
 		const [group, planet] = createBody(
 			info.colorMap,
@@ -178,9 +223,7 @@ function main() {
 		// initialize with random angles
 		info.revolutionAngle = Math.random() * 2 * Math.PI;
 		info.rotationAngle   = Math.random() * 2 * Math.PI;
-	});
 
-	planetsInfo.forEach(info => {
 		scene.add(info.meshGroup)
 	});
 
@@ -205,26 +248,15 @@ function initGUI() {
     // Create a slider for timeScale exponent
     gui.add(controls, 'timeScaleExponent', 0, 8).step(0.1).name('Time Scale').onChange(function(value) {
         timeScale = Math.pow(10, value);
-        updateDisplay();
     });
 
     // Create a slider for spaceScale exponent
-    gui.add(controls, 'spaceScaleExponent', 0, 4).step(0.1).name('Space Scale').onChange(function(value) {
+    gui.add(controls, 'spaceScaleExponent', 0, 3.5).step(0.1).name('Space Scale').onChange(function(value) {
         spaceScale = Math.pow(10, value);
-        updateDisplay();
     });
-
-    // Update the display to show the current values of timeScale and spaceScale
-    function updateDisplay() {
-        console.log('Time Scale:', timeScale);
-        console.log('Space Scale:', spaceScale);
-    }
 
     // Open the GUI by default
     gui.open();
-
-    // Initial display update
-    updateDisplay();
 }
 
 // ******************************************************************** //
@@ -242,7 +274,18 @@ function onWindowResize() {
 function anime() {
 
 	const delta = clock.getDelta();
+	
+	// update sun
+	sunInfo.rotationAngle += timeConst * delta * timeScale / sunInfo.rotationPeriod;
+	sunInfo.meshGroup.scale.setScalar(spaceScale);
+	const aux = (1 - spaceScale / 10)
+	sunInfo.sunMesh.material.opacity = Math.max(aux, 0.03);
+	sunInfo.sunMesh.updateMatrix();
+	sunInfo.sunMesh.rotation.y = sunInfo.rotationAngle;
 
+	// update moon
+
+	// update planets
 	planetsInfo.forEach(info => {
 		info.rotationAngle   += timeConst * delta * timeScale / info.rotationPeriod;
 		info.revolutionAngle += timeConst * delta * timeScale / info.revolutionPeriod;
@@ -272,21 +315,20 @@ function createBody(colorMap, specularMap, bumpMap, bumpScale, normalMap, normal
 	const group = new THREE.Group();
 	group.rotation.z = tilt * Math.PI / 180;
 
-	const path = "./textures/";
-
-	const materialParams = {};
+	const materialParams = {
+		transparent: true,
+		opacity: 1
+	};
 
 	if(bumpScale)   materialParams.bumpScale = bumpScale;
 	if(normalScale) materialParams.normalScale = normalScale;
-	if(colorMap)    materialParams.map = loader.load(path + colorMap);
-	if(specularMap) materialParams.specularMap = loader.load(path + specularMap);
-	if(bumpMap)     materialParams.bumpMap = loader.load(path + bumpMap);
+	if(colorMap)    materialParams.map = loader.load(texturePath + colorMap);
+	if(specularMap) materialParams.specularMap = loader.load(texturePath + specularMap);
+	if(bumpMap)     materialParams.bumpMap = loader.load(texturePath + bumpMap);
 	if(normalMap) {
-		materialParams.normalMap = loader.load(path + normalMap);
+		materialParams.normalMap = loader.load(texturePath + normalMap);
 		materialParams.normalMapType = THREE.TangentSpaceNormalMap;
 	}
-
-	console.log(materialParams);
 
 	const material = new THREE.MeshPhongMaterial(materialParams);
 
@@ -297,10 +339,9 @@ function createBody(colorMap, specularMap, bumpMap, bumpScale, normalMap, normal
 	group.add(planetMesh);
 
 	if(hasRing) {
-		console.log("Criando anel")
 		const material = new THREE.MeshPhongMaterial({
-			map: loader.load(path + ringColor),
-			alphaMap: loader.load(path + ringPattern),
+			map: loader.load(texturePath + ringColor),
+			alphaMap: loader.load(texturePath + ringPattern),
 			transparent: true,
 			side: THREE.DoubleSide
 		});
