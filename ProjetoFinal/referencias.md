@@ -1,4 +1,10 @@
-Texturas:
+Texturas, normal maps, bump maps and others:
 
-https://planet-texture-maps.fandom.com/wiki/Planet_Texture_Maps_Wiki
-https://planetpixelemporium.com/neptune.html
+https://planetpixelemporium.com/planets.html
+https://planetpixelemporium.com/earth8081.html
+https://planetpixelemporium.com/mars5672.html
+https://planetpixelemporium.com/venus2234.html
+
+Tilt, tamanho, periodo de rotação e translação:
+
+https://nssdc.gsfc.nasa.gov/planetary/factsheet/
