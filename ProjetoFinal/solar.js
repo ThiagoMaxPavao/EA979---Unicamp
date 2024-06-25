@@ -117,40 +117,36 @@ const planetsInfo = [
 // **                                                                ** //
 // ******************************************************************** //
 function main() {
-
 	renderer = new THREE.WebGLRenderer();
-	renderer.shadowMap.enabled = true;
-	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.setClearColor(new THREE.Color(0.0, 0.0, 0.0));
+    
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    
+    document.getElementById('threejs-canvas').appendChild(renderer.domElement);
 
-	renderer.setClearColor(new THREE.Color(0.0, 0.0, 0.0));
+    window.addEventListener('resize', onWindowResize);
 
-	rendSize.x = 
-	rendSize.y = Math.min(window.innerWidth, window.innerHeight) * 0.8;
-
-	renderer.setSize(rendSize.x, rendSize.y);
-
-	document.body.appendChild(renderer.domElement);
-
-	window.addEventListener('resize', onWindowResize);
-
-	scene = new THREE.Scene();
+    scene = new THREE.Scene();
 
 	initGUI();
 
 	// add camera
-	camera = new THREE.PerspectiveCamera( 70.0, rendSize.x / rendSize.y, 0.01, 10000.0 );
+	camera = new THREE.PerspectiveCamera( 70.0, window.innerWidth / window.innerHeight, 0.01, 10000.0 );
 	camera.position.z = 2.0;
 	camera.updateProjectionMatrix();
 
 	camControl = new OrbitControls(camera, renderer.domElement);
 
-	// add light
+	// add ambient light
 	scene.add(new THREE.AmbientLight(0x101010))
 
-	const dirLight = new THREE.DirectionalLight(0xffffff)
-	dirLight.position.set(7, 12, 8)
-	dirLight.castShadow = true
-	scene.add(dirLight)
+	// Create a point light to simulate the light of the sun
+	const pointLight = new THREE.PointLight(0xffffff, 1, 0); // (color, intensity, distance)
+	pointLight.position.set(0, 0, 0);
+	pointLight.castShadow = true;
+	scene.add(pointLight);
 
 	// add objects
 	var axis = new THREE.AxesHelper(0.8);
@@ -235,13 +231,9 @@ function initGUI() {
 // **                                                                ** //
 // ******************************************************************** //
 function onWindowResize() {
-
-	let minDim = Math.min(window.innerWidth, window.innerHeight);
-
-	renderer.setSize(minDim*0.8, minDim*0.8);
-
-	renderer.clear();
-	renderer.render(scene, camera);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
 }
 
 // ******************************************************************** //
