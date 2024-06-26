@@ -182,9 +182,7 @@ function main() {
 
 	// add camera
 	camera = new THREE.PerspectiveCamera( 70.0, window.innerWidth / window.innerHeight, 0.01, 10000000.0 );
-	camera.position.x = 600000;
-	camera.position.z = 600000;
-	camera.position.y = 200000;
+	camera.position.set(planetsInfo[7].sunDistance * 1.3, planetsInfo[7].sunDistance * 0.3, 0);
 	camera.updateProjectionMatrix();
 
 	camControl = new OrbitControls(camera, renderer.domElement);
