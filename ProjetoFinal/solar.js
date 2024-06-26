@@ -583,6 +583,7 @@ function tweenSpaceScale(start, end) { // function to ease transitions in change
 // ******************************************************************** //
 // **                                                                ** //
 // ******************************************************************** //
+// Credits to https://www.youtube.com/watch?v=FntV9iEJ0tU, https://github.com/bobbyroe/threejs-earth/tree/main
 function getStarfield({ numStars = 2000 } = {}) {
 	function randomSpherePoint() {
 		const radius = Math.random() * 5000000 + 10000000;
@@ -618,9 +619,7 @@ function getStarfield({ numStars = 2000 } = {}) {
 	const mat = new THREE.PointsMaterial({
 		size: 0.2,
 		vertexColors: true,
-		map: new THREE.TextureLoader().load(
-		texturePath + "circle.png"
-		),
+		map: loader.load(texturePath + "circle.png")
 	});
 	const points = new THREE.Points(geo, mat);
 	return points;
