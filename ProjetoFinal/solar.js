@@ -16,6 +16,7 @@ var 	controls,
 		renderer;
 
 var timeScale, spaceScale;
+var sunRotationEnabled;
 
 const timeConst = 2 * Math.PI / 3600;
 
@@ -255,11 +256,13 @@ function initGUI() {
     var controls = {
         timeScaleExponent: 0,
         spaceScaleExponent: 0,
-        focus: 'Sun'
+        focus: 'Sun',
+        sunRotation: true 
     };
 
 	timeScale = Math.pow(10, controls.timeScaleExponent);
 	spaceScale = Math.pow(10, controls.spaceScaleExponent);
+	sunRotationEnabled = controls.sunRotation;
 
     // Create a slider for timeScale exponent
     gui.add(controls, 'timeScaleExponent', 0, 8).step(0.01).name('Time Scale').onChange(function(value) {
@@ -267,7 +270,7 @@ function initGUI() {
     });
 
     // Create a slider for spaceScale exponent
-    gui.add(controls, 'spaceScaleExponent', -3.5, 0).step(0.01).name('Space Scale').onChange(function(value) {
+    const spaceScaleSlider = gui.add(controls, 'spaceScaleExponent', -3.5, 0).step(0.01).name('Space Scale').onChange(function(value) {
         const targetSpaceScale = Math.pow(10, value);
 		tweenSpaceScale(spaceScale, targetSpaceScale);
     });
@@ -297,6 +300,31 @@ function initGUI() {
 		if (newCamPos) camera.position.set(newCamPos.x, newCamPos.y, newCamPos.z);
 	});
 
+    // Add a checkbox for Sun rotation
+    gui.add(controls, 'sunRotation').name('Sun rotation').onChange(function(value) {
+        // Toggle sun rotation based on checkbox state
+        sunRotationEnabled = value;
+    }).setValue(controls.sunRotation); // Initialize checkbox state
+
+	// Function to update slider value from current spaceScale
+    function updateSliderFromSpaceScale(value) {
+        spaceScaleSlider.setValue(value);
+        tweenSpaceScale(spaceScale, Math.pow(10, value));
+    }
+
+    // Add buttons for special spaceScale values
+    const buttons = {
+        "Normal scale": 0,
+        "Earth & Moon scale": -1.5,
+        "Close to Sun scale": -1.85,
+        "Planets comparison scale": -3.5
+    };
+
+    for (const buttonLabel in buttons) {
+        const scaleValue = buttons[buttonLabel];
+        gui.add({ setScale: function() { updateSliderFromSpaceScale(scaleValue); } }, 'setScale').name(buttonLabel);
+    }
+
     // Open the GUI by default
     gui.open();
 }
@@ -322,7 +350,7 @@ function anime() {
 	vec3.subVectors(camera.position, pos);
 	
 	// update sun
-	sunInfo.rotationAngle += timeConst * delta * timeScale / sunInfo.rotationPeriod;
+	if(sunRotationEnabled) sunInfo.rotationAngle += timeConst * delta * timeScale / sunInfo.rotationPeriod;
 	const exp = -Math.log10(spaceScale);
 	const aux = exp < 1 ? 1 : (2 - exp)
 	sunInfo.bodyMesh.material.opacity = Math.max(aux, 0.03);
