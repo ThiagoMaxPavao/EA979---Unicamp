@@ -94,7 +94,8 @@ const planetsInfo = [
 		sunDistance: 228.0e6,
 		rotationPeriod: 24.6,
 		revolutionPeriod: 16488,
-		orbitColor: 0xB22222
+		orbitColor: 0xB22222,
+		reducedShininess: true
 	},
 	{
 		name: "Jupiter",
@@ -223,7 +224,8 @@ function main() {
 			info.ringColor,
 			info.ringPattern,
 			info.ringInnerRadius,
-			info.ringOuterRadius
+			info.ringOuterRadius,
+			info.reducedShininess
 		)
 		info.groupMesh  = group;
 		info.bodyMesh = planet;
@@ -424,7 +426,7 @@ function anime() {
 // ******************************************************************** //
 const sphereSharedGeometry = new THREE.SphereGeometry(1, 40, 40);
 
-function createBody(colorMap, specularMap, bumpMap, bumpScale, normalMap, normalScale, tilt, size, hasRing, ringColor, ringPattern, ringInnerRadius, ringOuterRadius) {
+function createBody(colorMap, specularMap, bumpMap, bumpScale, normalMap, normalScale, tilt, size, hasRing, ringColor, ringPattern, ringInnerRadius, ringOuterRadius, reducedShininess) {
 	const group = new THREE.Group();
 	group.rotation.z = tilt * Math.PI / 180;
 
@@ -442,6 +444,7 @@ function createBody(colorMap, specularMap, bumpMap, bumpScale, normalMap, normal
 		materialParams.normalMap = loader.load(texturePath + normalMap);
 		materialParams.normalMapType = THREE.TangentSpaceNormalMap;
 	}
+	if(reducedShininess) materialParams.shininess = 10;
 
 	const material = new THREE.MeshPhongMaterial(materialParams);
 
