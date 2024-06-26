@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 
 import { GUI } from '../Assets/scripts/three.js/examples/jsm/libs/lil-gui.module.min.js';
+import { TWEEN } from '../Assets/scripts/three.js/examples/jsm/libs/tween.module.min.js';
 import { OrbitControls } from '../Assets/scripts/three.js/examples/jsm/controls/OrbitControls.js';
 
 const 	gui 		= new GUI();
@@ -15,6 +16,7 @@ var 	controls,
 		renderer;
 
 var timeScale, spaceScale;
+var targetSpaceScale;
 
 const timeConst = 2 * Math.PI / 3600;
 
@@ -264,7 +266,8 @@ function initGUI() {
 
     // Create a slider for spaceScale exponent
     gui.add(controls, 'spaceScaleExponent', -3.5, 0).step(0.01).name('Space Scale').onChange(function(value) {
-        spaceScale = Math.pow(10, value);
+        targetSpaceScale = Math.pow(10, value);
+		tweenSpaceScale(spaceScale, targetSpaceScale);
     });
 
 	// Add a dropdown menu for focus object selection
@@ -294,6 +297,7 @@ function onWindowResize() {
 // **                                                                ** //
 // ******************************************************************** //
 function anime() {
+    TWEEN.update();
 
 	const delta = clock.getDelta();
 
@@ -443,6 +447,19 @@ function createCircumference(radius, segments, color) {
 
 	circleOutline.rotateX(Math.PI/2);
 	return circleOutline;
+}
+
+// ******************************************************************** //
+// **                                                                ** //
+// ******************************************************************** //
+function tweenSpaceScale(start, end) { // function to ease transitions in changes to space scale
+    new TWEEN.Tween({ scale: start })
+        .to({ scale: end }, 1000) // Duration in milliseconds
+        .easing(TWEEN.Easing.Quadratic.Out) // Easing function
+        .onUpdate(function (obj) {
+            spaceScale = obj.scale;
+        })
+        .start();
 }
 
 // ******************************************************************** //
