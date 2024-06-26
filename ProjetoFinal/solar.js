@@ -163,7 +163,9 @@ function main() {
 
 	// add camera
 	camera = new THREE.PerspectiveCamera( 70.0, window.innerWidth / window.innerHeight, 0.01, 1000000.0 );
-	camera.position.z = 2.0;
+	camera.position.x = 600000;
+	camera.position.z = 600000;
+	camera.position.y = 200000;
 	camera.updateProjectionMatrix();
 
 	camControl = new OrbitControls(camera, renderer.domElement);
@@ -186,6 +188,11 @@ function main() {
 	moonInfo.radius /= scaleDownFactor;
 	moonInfo.earthDistance /= scaleDownFactor;
 
+	planetsInfo.forEach((info, index) => {
+		info.radius /= scaleDownFactor;
+		info.sunDistance /= scaleDownFactor;
+	});
+
 	// add sun
 	createSun();
 
@@ -193,11 +200,6 @@ function main() {
 
 	// add planets
 	
-	planetsInfo.forEach((info, index) => {
-		info.radius /= scaleDownFactor;
-		info.sunDistance /= scaleDownFactor;
-	});
-
 	planetsInfo.forEach((info, index) => {
 
 		const [group, planet] = createBody(
@@ -247,8 +249,8 @@ function initGUI() {
     planetNames.unshift('Sun');
 
     var controls = {
-        timeScaleExponent: 5,
-        spaceScaleExponent: -3,
+        timeScaleExponent: 0,
+        spaceScaleExponent: 0,
         focus: 'Sun'
     };
 
