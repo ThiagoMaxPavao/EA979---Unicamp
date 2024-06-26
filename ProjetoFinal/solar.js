@@ -249,6 +249,7 @@ function initGUI() {
 	let planetNames = []
 	planetsInfo.forEach(planet => planetNames.push(planet.name));
     planetNames.unshift('Sun');
+    planetNames.unshift('Moon');
 
     var controls = {
         timeScaleExponent: 0,
@@ -272,12 +273,25 @@ function initGUI() {
 
 	// Add a dropdown menu for focus object selection
 	gui.add(controls, 'focus', planetNames).name('Focus').onChange(function(value) {
-		focusObj = scene.getObjectByName(value);
-		if(value != "Sun") {
+		const newObj = scene.getObjectByName(value);
+		if(newObj) focusObj = newObj;
+		else console.error("Focused object not found by name");
+
+		let newCamPos;
+		
+		if (value === "Sun") {
+			const sunRadius = sunInfo.radius;
+			newCamPos = new THREE.Vector3(2 * sunRadius, 2 * sunRadius, 2 * sunRadius);
+		} else if (value === "Moon") {
+			
+		} else {
 			const planetPos = focusObj.position;
-			const planetRadius = planetsInfo[planetNames.findIndex(v => v == value)].radius;
-        	camera.position.set(planetPos.x + planetRadius, planetPos.y, planetPos.z);
+			const planetIndex = planetNames.findIndex(v => v === value) - 2; // 2 = Sun and Moon
+			const planetRadius = planetsInfo[planetIndex].radius;
+			newCamPos = planetPos.clone().add(new THREE.Vector3(2 * planetRadius, 2 * planetRadius, 2 * planetRadius));
 		}
+		
+		if (newCamPos) camera.position.set(newCamPos.x, newCamPos.y, newCamPos.z);
 	});
 
     // Open the GUI by default
@@ -455,7 +469,7 @@ function createCircumference(radius, segments, color) {
 function tweenSpaceScale(start, end) { // function to ease transitions in changes to space scale
     new TWEEN.Tween({ scale: start })
         .to({ scale: end }, 1000) // Duration in milliseconds
-        .easing(TWEEN.Easing.Quadratic.Out) // Easing function
+        .easing(TWEEN.Easing.Quintic.Out) // Easing function
         .onUpdate(function (obj) {
             spaceScale = obj.scale;
         })
