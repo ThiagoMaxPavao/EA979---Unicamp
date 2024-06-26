@@ -20,8 +20,11 @@ const timeConst = 2 * Math.PI / 3600;
 
 const loader = new THREE.TextureLoader();
 
+var focusObj;
+var vec3 = new THREE.Vector3();
+
 const sunInfo = {
-	name: "sun",
+	name: "Sun",
 	colorMap: "sun_map.jpg",
 	tilt: 7.25,
 	radius: 696340,
@@ -29,7 +32,7 @@ const sunInfo = {
 }
 
 const moonInfo = {
-	name: "moon",
+	name: "Moon",
 	colorMap: "moon_map.jpg",
 	bumpMap: "moon_bump.jpg",
 	bumpScale: 1,
@@ -41,10 +44,10 @@ const moonInfo = {
 
 const planetsInfo = [
 	{
-		name: "mercury",
+		name: "Mercury",
 		colorMap: "mercury_map.jpg",
 		bumpMap: "mercury_bump.jpg",
-		bumpScale: 0.007,
+		bumpScale: 0.002,
 		tilt: 0.034,
 		radius: 2439.5,
 		sunDistance: 57.9e6,
@@ -53,10 +56,10 @@ const planetsInfo = [
 		orbitColor: 0x909090
 	},
 	{
-		name: "venus",
+		name: "Venus",
 		colorMap: "venus_map.jpg",
 		bumpMap: "venus_bump.jpg",
-		bumpScale: 0.03,
+		bumpScale: 0.01,
 		tilt: 177.4,
 		radius: 6052,
 		sunDistance: 108.2e6,
@@ -65,11 +68,11 @@ const planetsInfo = [
 		orbitColor: 0xE3CF57
 	},
 	{
-		name: "earth",
+		name: "Earth",
 		colorMap: "earth_map.jpg",
 		specularMap: "earth_spec.jpg",
 		bumpMap: "earth_bump.jpg",
-		bumpScale: 0.3,
+		bumpScale: 0.1,
 		tilt: 23.4,
 		radius: 6378,
 		sunDistance: 149.6e6,
@@ -78,7 +81,7 @@ const planetsInfo = [
 		orbitColor: 0x2A52BE
 	},
 	{
-		name: "mars",
+		name: "Mars",
 		colorMap: "mars_map.jpg",
 		normalMap: "mars_normal.jpg",
 		normalScale: new THREE.Vector2(1, 1),
@@ -90,7 +93,7 @@ const planetsInfo = [
 		orbitColor: 0xB22222
 	},
 	{
-		name: "jupiter",
+		name: "Jupiter",
 		colorMap: "jupiter_map.jpg",
 		tilt: 3.1,
 		radius: 71492,
@@ -100,7 +103,7 @@ const planetsInfo = [
 		orbitColor: 0xD4AF37
 	},
 	{
-		name: "saturn",
+		name: "Saturn",
 		colorMap: "saturn_map.jpg",
 		hasRing: true,
 		ringColor: "saturn_ring_color.jpg",
@@ -115,7 +118,7 @@ const planetsInfo = [
 		orbitColor: 0xD2B48C
 	},
 	{
-		name: "uranus",
+		name: "Uranus",
 		colorMap: "uranus_map.jpg",
 		hasRing: true,
 		ringColor: "uranus_ring_color.jpg",
@@ -130,7 +133,7 @@ const planetsInfo = [
 		orbitColor: 0xAFEEEE
 	},
 	{
-		name: "neptune",
+		name: "Neptune",
 		colorMap: "neptune_map.jpg",
 		tilt: 28.3,
 		radius: 24764,
@@ -146,8 +149,6 @@ const planetsInfo = [
 // ******************************************************************** //
 function main() {
 	renderer = new THREE.WebGLRenderer({antialiasing: true});
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.setClearColor(new THREE.Color(0.0, 0.0, 0.0));
     
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -161,11 +162,12 @@ function main() {
 	initGUI();
 
 	// add camera
-	camera = new THREE.PerspectiveCamera( 70.0, window.innerWidth / window.innerHeight, 0.01, 10000.0 );
+	camera = new THREE.PerspectiveCamera( 70.0, window.innerWidth / window.innerHeight, 0.01, 1000000.0 );
 	camera.position.z = 2.0;
 	camera.updateProjectionMatrix();
 
 	camControl = new OrbitControls(camera, renderer.domElement);
+	camControl.enableDampin = true;
 
 	// add ambient light
 	scene.add(new THREE.AmbientLight(0x101010))
@@ -173,13 +175,12 @@ function main() {
 	// Create a point light to simulate the light of the sun
 	const pointLight = new THREE.PointLight(0xffffff, 1, 0); // (color, intensity, distance)
 	pointLight.position.set(0, 0, 0);
-	pointLight.castShadow = true;
 	scene.add(pointLight);
 
 	// add objects
 
 	// scale down distance/radius numbers
-	const scaleDownFactor = 1e7;
+	const scaleDownFactor = 6378;
 
 	sunInfo.radius /= scaleDownFactor;
 	moonInfo.radius /= scaleDownFactor;
@@ -221,10 +222,15 @@ function main() {
 		info.revolutionAngle = Math.random() * 2 * Math.PI;
 		info.rotationAngle   = Math.random() * 2 * Math.PI;
 
-		createCircumference(info.sunDistance, 64, info.orbitColor);
-
+		let orbit = createCircumference(info.sunDistance, 64, info.orbitColor);
+		info.orbit = orbit;
+		
+		info.meshGroup.name = info.name;
+    	scene.add(orbit);
 		scene.add(info.meshGroup)
 	});
+
+	focusObj = sunInfo.sunMesh;
 
 	renderer.clear();
 	renderer.render(scene, camera);
@@ -236,9 +242,14 @@ function main() {
 // **                                                                ** //
 // ******************************************************************** //
 function initGUI() {
+	let planetNames = []
+	planetsInfo.forEach(planet => planetNames.push(planet.name));
+    planetNames.unshift('Sun');
+
     var controls = {
         timeScaleExponent: 5,
-        spaceScaleExponent: 3
+        spaceScaleExponent: -3,
+        focus: 'Sun'
     };
 
 	timeScale = Math.pow(10, controls.timeScaleExponent);
@@ -250,9 +261,19 @@ function initGUI() {
     });
 
     // Create a slider for spaceScale exponent
-    gui.add(controls, 'spaceScaleExponent', 0, 3.5).step(0.01).name('Space Scale').onChange(function(value) {
+    gui.add(controls, 'spaceScaleExponent', -3.5, 0).step(0.01).name('Space Scale').onChange(function(value) {
         spaceScale = Math.pow(10, value);
     });
+
+	// Add a dropdown menu for focus object selection
+	gui.add(controls, 'focus', planetNames).name('Focus').onChange(function(value) {
+		focusObj = scene.getObjectByName(value);
+		if(value != "Sun") {
+			const planetPos = focusObj.position;
+			const planetRadius = planetsInfo[planetNames.findIndex(v => v == value)].radius;
+        	camera.position.set(planetPos.x + planetRadius, planetPos.y, planetPos.z);
+		}
+	});
 
     // Open the GUI by default
     gui.open();
@@ -273,13 +294,15 @@ function onWindowResize() {
 function anime() {
 
 	const delta = clock.getDelta();
+
+	let pos = focusObj.position;
+	vec3.subVectors(camera.position, pos);
 	
 	// update sun
 	sunInfo.rotationAngle += timeConst * delta * timeScale / sunInfo.rotationPeriod;
-	sunInfo.meshGroup.scale.setScalar(spaceScale);
-	const exp = Math.log10(spaceScale);
+	const exp = -Math.log10(spaceScale);
 	const aux = exp < 1 ? 1 : (2 - exp)
-	sunInfo.sunMesh.material.opacity = Math.max(aux, 0.05);
+	sunInfo.sunMesh.material.opacity = Math.max(aux, 0.03);
 	sunInfo.sunMesh.rotation.y = sunInfo.rotationAngle;
 
 	// update moon
@@ -290,14 +313,21 @@ function anime() {
 		info.revolutionAngle += timeConst * delta * timeScale / info.revolutionPeriod;
 		
 		info.meshGroup.position.set(
-			info.sunDistance*Math.sin(info.revolutionAngle),
+			spaceScale * info.sunDistance*Math.sin(info.revolutionAngle),
 			0,
-			info.sunDistance*Math.cos(info.revolutionAngle)
+			spaceScale * info.sunDistance*Math.cos(info.revolutionAngle)
 		);
-		info.meshGroup.scale.setScalar(spaceScale);
 		
 		info.planetMesh.rotation.y = info.rotationAngle;
+
+		// update orbit radius
+		info.orbit.scale.setScalar(spaceScale * info.sunDistance);
 	})
+
+	pos = focusObj.position;
+	camControl.object.position.copy(pos).add(vec3);
+	camControl.target.copy(pos);
+	camControl.update();
 
 	renderer.clear();
 	renderer.render(scene, camera);
@@ -333,7 +363,6 @@ function createBody(colorMap, specularMap, bumpMap, bumpScale, normalMap, normal
 
 	const planetMesh = new THREE.Mesh(sphereSharedGeometry, material);
 	planetMesh.scale.setScalar(size);
-	if(hasRing) planetMesh.castShadow = true;
 	planetMesh.updateMatrix();
 	group.add(planetMesh);
 
@@ -362,7 +391,6 @@ function createBody(colorMap, specularMap, bumpMap, bumpScale, normalMap, normal
 
 		const ringMesh = new THREE.Mesh(geometry, material);
 		ringMesh.rotateX(Math.PI/2);
-		ringMesh.receiveShadow = true;
 		ringMesh.updateMatrix();
 
 		group.add(ringMesh);
@@ -387,6 +415,7 @@ function createSun() {
 	sun.scale.setScalar(sunInfo.radius);
 	sun.updateMatrix();
 	sun.renderOrder = 1;
+	sun.name = sunInfo.name;
 	group.add(sun);
 	
 	sunInfo.rotationAngle = Math.random() * 2 * Math.PI;
@@ -410,9 +439,8 @@ function createCircumference(radius, segments, color) {
     const lineMaterial = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.5 });
     const circleOutline = new THREE.LineSegments(edgesGeometry, lineMaterial);
 
-	circleOutline.scale.setScalar(radius);
 	circleOutline.rotateX(Math.PI/2);
-    scene.add(circleOutline);
+	return circleOutline;
 }
 
 // ******************************************************************** //
