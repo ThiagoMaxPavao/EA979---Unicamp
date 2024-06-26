@@ -16,7 +16,6 @@ var 	controls,
 		renderer;
 
 var timeScale, spaceScale;
-var targetSpaceScale;
 
 const timeConst = 2 * Math.PI / 3600;
 
@@ -36,12 +35,13 @@ const sunInfo = {
 const moonInfo = {
 	name: "Moon",
 	colorMap: "moon_map.jpg",
-	bumpMap: "moon_bump.jpg",
-	bumpScale: 1,
+	// bumpMap: "moon_bump.jpg",
+	bumpScale: 0.003,
 	tilt: 6.7,
 	radius: 1737.5,
 	earthDistance: 384400,
-	rotationPeriod: 655.2
+	rotationPeriod: 655.2,
+	orbitColor: 0xC0C0C0
 }
 
 const planetsInfo = [
@@ -198,8 +198,6 @@ function main() {
 	// add sun
 	createSun();
 
-	// add moon
-
 	// add planets
 	
 	planetsInfo.forEach((info, index) => {
@@ -219,22 +217,25 @@ function main() {
 			info.ringInnerRadius,
 			info.ringOuterRadius
 		)
-		info.meshGroup  = group;
-		info.planetMesh = planet;
+		info.groupMesh  = group;
+		info.bodyMesh = planet;
 
 		// initialize with random angles
 		info.revolutionAngle = Math.random() * 2 * Math.PI;
 		info.rotationAngle   = Math.random() * 2 * Math.PI;
 
-		let orbit = createCircumference(info.sunDistance, 64, info.orbitColor);
+		let orbit = createCircumference(64, info.orbitColor);
 		info.orbit = orbit;
 		
-		info.meshGroup.name = info.name;
+		info.groupMesh.name = info.name;
     	scene.add(orbit);
-		scene.add(info.meshGroup)
+		scene.add(info.groupMesh)
 	});
 
-	focusObj = sunInfo.sunMesh;
+	// add moon
+	createMoon();
+
+	focusObj = sunInfo.bodyMesh;
 
 	renderer.clear();
 	renderer.render(scene, camera);
@@ -248,8 +249,8 @@ function main() {
 function initGUI() {
 	let planetNames = []
 	planetsInfo.forEach(planet => planetNames.push(planet.name));
-    planetNames.unshift('Sun');
     planetNames.unshift('Moon');
+    planetNames.unshift('Sun');
 
     var controls = {
         timeScaleExponent: 0,
@@ -267,7 +268,7 @@ function initGUI() {
 
     // Create a slider for spaceScale exponent
     gui.add(controls, 'spaceScaleExponent', -3.5, 0).step(0.01).name('Space Scale').onChange(function(value) {
-        targetSpaceScale = Math.pow(10, value);
+        const targetSpaceScale = Math.pow(10, value);
 		tweenSpaceScale(spaceScale, targetSpaceScale);
     });
 
@@ -283,7 +284,9 @@ function initGUI() {
 			const sunRadius = sunInfo.radius;
 			newCamPos = new THREE.Vector3(2 * sunRadius, 2 * sunRadius, 2 * sunRadius);
 		} else if (value === "Moon") {
-			
+			const moonPos = focusObj.position;
+			const moonRadius = moonInfo.radius;
+			newCamPos = moonPos.clone().add(new THREE.Vector3(2 * moonRadius, 2 * moonRadius, 2 * moonRadius));
 		} else {
 			const planetPos = focusObj.position;
 			const planetIndex = planetNames.findIndex(v => v === value) - 2; // 2 = Sun and Moon
@@ -322,28 +325,43 @@ function anime() {
 	sunInfo.rotationAngle += timeConst * delta * timeScale / sunInfo.rotationPeriod;
 	const exp = -Math.log10(spaceScale);
 	const aux = exp < 1 ? 1 : (2 - exp)
-	sunInfo.sunMesh.material.opacity = Math.max(aux, 0.03);
-	sunInfo.sunMesh.rotation.y = sunInfo.rotationAngle;
-
-	// update moon
+	sunInfo.bodyMesh.material.opacity = Math.max(aux, 0.03);
+	sunInfo.bodyMesh.rotation.y = sunInfo.rotationAngle;
 
 	// update planets
 	planetsInfo.forEach(info => {
 		info.rotationAngle   += timeConst * delta * timeScale / info.rotationPeriod;
 		info.revolutionAngle += timeConst * delta * timeScale / info.revolutionPeriod;
 		
-		info.meshGroup.position.set(
+		info.groupMesh.position.set(
 			spaceScale * info.sunDistance*Math.sin(info.revolutionAngle),
 			0,
 			spaceScale * info.sunDistance*Math.cos(info.revolutionAngle)
 		);
 		
-		info.planetMesh.rotation.y = info.rotationAngle;
+		info.bodyMesh.rotation.y = info.rotationAngle;
 
-		// update orbit radius
+		// update orbit
 		info.orbit.scale.setScalar(spaceScale * info.sunDistance);
 		info.orbit.rotation.z = -info.revolutionAngle;
 	})
+
+	// update moon
+	moonInfo.rotationAngle += timeConst * delta * timeScale / moonInfo.rotationPeriod;
+	moonInfo.groupMesh.position.set(
+		moonInfo.earthPositionRef.x + spaceScale * moonInfo.earthDistance*Math.sin(moonInfo.rotationAngle),
+		moonInfo.earthPositionRef.y,
+		moonInfo.earthPositionRef.z + spaceScale * moonInfo.earthDistance*Math.cos(moonInfo.rotationAngle)
+	);
+	moonInfo.groupMesh.rotation.y = moonInfo.rotationAngle;
+
+	// moon orbit
+	moonInfo.orbit.position.set(moonInfo.earthPositionRef.x, moonInfo.earthPositionRef.y, moonInfo.earthPositionRef.z);
+	moonInfo.orbit.scale.setScalar(spaceScale * moonInfo.earthDistance);
+	moonInfo.orbit.rotation.z = -moonInfo.rotationAngle;
+	
+	const aux2 = exp < 1.55 ? 1 : (1 - 10 * (exp-1.55))
+	moonInfo.bodyMesh.material.opacity = Math.max(aux2, 0.1);
 
 	pos = focusObj.position;
 	camControl.object.position.copy(pos).add(vec3);
@@ -382,10 +400,10 @@ function createBody(colorMap, specularMap, bumpMap, bumpScale, normalMap, normal
 
 	const material = new THREE.MeshPhongMaterial(materialParams);
 
-	const planetMesh = new THREE.Mesh(sphereSharedGeometry, material);
-	planetMesh.scale.setScalar(size);
-	planetMesh.updateMatrix();
-	group.add(planetMesh);
+	const bodyMesh = new THREE.Mesh(sphereSharedGeometry, material);
+	bodyMesh.scale.setScalar(size);
+	bodyMesh.updateMatrix();
+	group.add(bodyMesh);
 
 	if(hasRing) {
 		const material = new THREE.MeshPhongMaterial({
@@ -417,7 +435,7 @@ function createBody(colorMap, specularMap, bumpMap, bumpScale, normalMap, normal
 		group.add(ringMesh);
 	}
 
-	return [group, planetMesh];
+	return [group, bodyMesh];
 }
 
 // ******************************************************************** //
@@ -440,8 +458,8 @@ function createSun() {
 	group.add(sun);
 	
 	sunInfo.rotationAngle = Math.random() * 2 * Math.PI;
-	sunInfo.meshGroup  = group;
-	sunInfo.sunMesh = sun;
+	sunInfo.groupMesh  = group;
+	sunInfo.bodyMesh = sun;
 	scene.add(group);
 	
 	const geometry = new THREE.BufferGeometry();
@@ -450,11 +468,45 @@ function createSun() {
 	const dot = new THREE.Points(geometry, material);
 	scene.add(dot);
 }
+// ******************************************************************** //
+// **                                                                ** //
+// ******************************************************************** //
+function createMoon() {
+	const info = moonInfo;
+	const [group, moon] = createBody(
+		info.colorMap,
+		info.specularMap,
+		info.bumpMap,
+		info.bumpScale,
+		info.normalMap,
+		info.normalScale,
+		info.tilt,
+		info.radius,
+		info.hasRing,
+		info.ringColor,
+		info.ringPattern,
+		info.ringInnerRadius,
+		info.ringOuterRadius
+	)
+	info.groupMesh  = group;
+	info.bodyMesh = moon;
+
+	info.earthPositionRef = scene.getObjectByName("Earth").position;
+
+	info.rotationAngle = Math.random() * 2 * Math.PI;
+	group.name = info.name;
+	scene.add(group);
+
+	let orbit = createCircumference(128, info.orbitColor);
+	info.orbit = orbit;
+
+	scene.add(orbit);
+}
 
 // ******************************************************************** //
 // **                                                                ** //
 // ******************************************************************** //
-function createCircumference(radius, segments, color) {
+function createCircumference(segments, color) {
     const circleGeometry = new THREE.CircleGeometry(1, segments);
     const edgesGeometry = new THREE.EdgesGeometry(circleGeometry);
     const lineMaterial = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.5 });
