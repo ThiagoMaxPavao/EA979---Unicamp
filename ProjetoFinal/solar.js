@@ -342,6 +342,7 @@ function anime() {
 
 		// update orbit radius
 		info.orbit.scale.setScalar(spaceScale * info.sunDistance);
+		info.orbit.rotation.z = -info.revolutionAngle;
 	})
 
 	pos = focusObj.position;
