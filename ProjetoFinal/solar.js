@@ -49,7 +49,8 @@ const planetsInfo = [
 		radius: 2439.5,
 		sunDistance: 57.9e6,
 		rotationPeriod: 1407.6,
-		revolutionPeriod: 2112
+		revolutionPeriod: 2112,
+		orbitColor: 0x909090
 	},
 	{
 		name: "venus",
@@ -60,7 +61,8 @@ const planetsInfo = [
 		radius: 6052,
 		sunDistance: 108.2e6,
 		rotationPeriod: -5832.5,
-		revolutionPeriod: 5392.8
+		revolutionPeriod: 5392.8,
+		orbitColor: 0xE3CF57
 	},
 	{
 		name: "earth",
@@ -72,7 +74,8 @@ const planetsInfo = [
 		radius: 6378,
 		sunDistance: 149.6e6,
 		rotationPeriod: 23.9,
-		revolutionPeriod: 8764.8
+		revolutionPeriod: 8764.8,
+		orbitColor: 0x2A52BE
 	},
 	{
 		name: "mars",
@@ -83,7 +86,8 @@ const planetsInfo = [
 		radius: 3396,
 		sunDistance: 228.0e6,
 		rotationPeriod: 24.6,
-		revolutionPeriod: 16488
+		revolutionPeriod: 16488,
+		orbitColor: 0xB22222
 	},
 	{
 		name: "jupiter",
@@ -92,7 +96,8 @@ const planetsInfo = [
 		radius: 71492,
 		sunDistance: 778.5e6,
 		rotationPeriod: 9.9,
-		revolutionPeriod: 103944
+		revolutionPeriod: 103944,
+		orbitColor: 0xD4AF37
 	},
 	{
 		name: "saturn",
@@ -106,7 +111,8 @@ const planetsInfo = [
 		radius: 60268,
 		sunDistance: 1432.0e6,
 		rotationPeriod: 10.7,
-		revolutionPeriod: 257928
+		revolutionPeriod: 257928,
+		orbitColor: 0xD2B48C
 	},
 	{
 		name: "uranus",
@@ -120,7 +126,8 @@ const planetsInfo = [
 		radius: 25559,
 		sunDistance: 2867.0e6,
 		rotationPeriod: -17.2,
-		revolutionPeriod: 734136
+		revolutionPeriod: 734136,
+		orbitColor: 0xAFEEEE
 	},
 	{
 		name: "neptune",
@@ -129,7 +136,8 @@ const planetsInfo = [
 		radius: 24764,
 		sunDistance: 4515.0e6,
 		rotationPeriod: 16.1,
-		revolutionPeriod: 1435200
+		revolutionPeriod: 1435200,
+		orbitColor: 0x2C75FF
 	}
 ]
 
@@ -137,7 +145,7 @@ const planetsInfo = [
 // **                                                                ** //
 // ******************************************************************** //
 function main() {
-	renderer = new THREE.WebGLRenderer();
+	renderer = new THREE.WebGLRenderer({antialiasing: true});
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.setClearColor(new THREE.Color(0.0, 0.0, 0.0));
@@ -178,18 +186,7 @@ function main() {
 	moonInfo.earthDistance /= scaleDownFactor;
 
 	// add sun
-	const group = new THREE.Group();
-	group.rotation.z = sunInfo.tilt * Math.PI / 180;
-
-	const sun = new THREE.Mesh(sphereSharedGeometry, new THREE.MeshBasicMaterial({map: loader.load(texturePath + sunInfo.colorMap), transparent: true, opacity: 1}));
-	sun.scale.setScalar(sunInfo.radius);
-	sun.updateMatrix();
-	group.add(sun);
-
-	sunInfo.rotationAngle = Math.random() * 2 * Math.PI;
-	sunInfo.meshGroup  = group;
-	sunInfo.sunMesh = sun;
-	scene.add(group)
+	createSun();
 
 	// add moon
 
@@ -224,6 +221,8 @@ function main() {
 		info.revolutionAngle = Math.random() * 2 * Math.PI;
 		info.rotationAngle   = Math.random() * 2 * Math.PI;
 
+		createCircumference(info.sunDistance, 64, info.orbitColor);
+
 		scene.add(info.meshGroup)
 	});
 
@@ -246,12 +245,12 @@ function initGUI() {
 	spaceScale = Math.pow(10, controls.spaceScaleExponent);
 
     // Create a slider for timeScale exponent
-    gui.add(controls, 'timeScaleExponent', 0, 8).step(0.1).name('Time Scale').onChange(function(value) {
+    gui.add(controls, 'timeScaleExponent', 0, 8).step(0.01).name('Time Scale').onChange(function(value) {
         timeScale = Math.pow(10, value);
     });
 
     // Create a slider for spaceScale exponent
-    gui.add(controls, 'spaceScaleExponent', 0, 3.5).step(0.1).name('Space Scale').onChange(function(value) {
+    gui.add(controls, 'spaceScaleExponent', 0, 3.5).step(0.01).name('Space Scale').onChange(function(value) {
         spaceScale = Math.pow(10, value);
     });
 
@@ -278,9 +277,9 @@ function anime() {
 	// update sun
 	sunInfo.rotationAngle += timeConst * delta * timeScale / sunInfo.rotationPeriod;
 	sunInfo.meshGroup.scale.setScalar(spaceScale);
-	const aux = (1 - spaceScale / 10)
-	sunInfo.sunMesh.material.opacity = Math.max(aux, 0.03);
-	sunInfo.sunMesh.updateMatrix();
+	const exp = Math.log10(spaceScale);
+	const aux = exp < 1 ? 1 : (2 - exp)
+	sunInfo.sunMesh.material.opacity = Math.max(aux, 0.05);
 	sunInfo.sunMesh.rotation.y = sunInfo.rotationAngle;
 
 	// update moon
@@ -370,6 +369,50 @@ function createBody(colorMap, specularMap, bumpMap, bumpScale, normalMap, normal
 	}
 
 	return [group, planetMesh];
+}
+
+// ******************************************************************** //
+// **                                                                ** //
+// ******************************************************************** //
+function createSun() {
+	const group = new THREE.Group();
+	group.rotation.z = sunInfo.tilt * Math.PI / 180;
+	
+	const sun = new THREE.Mesh(sphereSharedGeometry, new THREE.MeshBasicMaterial({
+		map: loader.load(texturePath + sunInfo.colorMap),
+		transparent: true,
+		opacity: 1,
+		side: THREE.DoubleSide
+	}));
+	sun.scale.setScalar(sunInfo.radius);
+	sun.updateMatrix();
+	sun.renderOrder = 1;
+	group.add(sun);
+	
+	sunInfo.rotationAngle = Math.random() * 2 * Math.PI;
+	sunInfo.meshGroup  = group;
+	sunInfo.sunMesh = sun;
+	scene.add(group);
+	
+	const geometry = new THREE.BufferGeometry();
+	geometry.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0], 3));
+	const material = new THREE.PointsMaterial({color: 0xffffff, size: 3, sizeAttenuation: false});
+	const dot = new THREE.Points(geometry, material);
+	scene.add(dot);
+}
+
+// ******************************************************************** //
+// **                                                                ** //
+// ******************************************************************** //
+function createCircumference(radius, segments, color) {
+    const circleGeometry = new THREE.CircleGeometry(1, segments);
+    const edgesGeometry = new THREE.EdgesGeometry(circleGeometry);
+    const lineMaterial = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.5 });
+    const circleOutline = new THREE.LineSegments(edgesGeometry, lineMaterial);
+
+	circleOutline.scale.setScalar(radius);
+	circleOutline.rotateX(Math.PI/2);
+    scene.add(circleOutline);
 }
 
 // ******************************************************************** //
