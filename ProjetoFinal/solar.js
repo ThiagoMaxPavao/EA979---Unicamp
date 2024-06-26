@@ -11,6 +11,7 @@ const texturePath = "./textures/"
 
 var 	controls, 
 		scene,
+		sunLight,
 		camera,
 		camControl,
 		renderer;
@@ -151,8 +152,22 @@ const planetsInfo = [
 // **                                                                ** //
 // ******************************************************************** //
 function main() {
+	// scale down distance/radius numbers
+	const scaleDownFactor = 6378;
+
+	sunInfo.radius /= scaleDownFactor;
+	moonInfo.radius /= scaleDownFactor;
+	moonInfo.earthDistance /= scaleDownFactor;
+
+	planetsInfo.forEach((info, index) => {
+		info.radius /= scaleDownFactor;
+		info.sunDistance /= scaleDownFactor;
+	});
+
+	// create renderer
 	renderer = new THREE.WebGLRenderer({antialiasing: true});
     renderer.setClearColor(new THREE.Color(0.0, 0.0, 0.0));
+	renderer.shadowMap.enabled = true;
     
     renderer.setSize(window.innerWidth, window.innerHeight);
     
@@ -165,36 +180,28 @@ function main() {
 	initGUI();
 
 	// add camera
-	camera = new THREE.PerspectiveCamera( 70.0, window.innerWidth / window.innerHeight, 0.01, 1000000.0 );
+	camera = new THREE.PerspectiveCamera( 70.0, window.innerWidth / window.innerHeight, 0.01, 10000000.0 );
 	camera.position.x = 600000;
 	camera.position.z = 600000;
 	camera.position.y = 200000;
 	camera.updateProjectionMatrix();
 
 	camControl = new OrbitControls(camera, renderer.domElement);
-	camControl.enableDampin = true;
+	camControl.enableDamping = true;
+
+	camControl.minDistance = 0;
+	camControl.maxDistance = planetsInfo[7].sunDistance * 1.5;
 
 	// add ambient light
 	scene.add(new THREE.AmbientLight(0x101010))
 
 	// Create a point light to simulate the light of the sun
-	const pointLight = new THREE.PointLight(0xffffff, 1, 0); // (color, intensity, distance)
-	pointLight.position.set(0, 0, 0);
-	scene.add(pointLight);
+	sunLight = new THREE.PointLight(0xffffff, 1, 0); // (color, intensity, distance)
+	sunLight.position.set(0, 0, 0);
+	sunLight.castShadow = false;
+	scene.add(sunLight);
 
 	// add objects
-
-	// scale down distance/radius numbers
-	const scaleDownFactor = 6378;
-
-	sunInfo.radius /= scaleDownFactor;
-	moonInfo.radius /= scaleDownFactor;
-	moonInfo.earthDistance /= scaleDownFactor;
-
-	planetsInfo.forEach((info, index) => {
-		info.radius /= scaleDownFactor;
-		info.sunDistance /= scaleDownFactor;
-	});
 
 	// add sun
 	createSun();
@@ -236,6 +243,10 @@ function main() {
 	// add moon
 	createMoon();
 
+	// add stars
+	const starfield = getStarfield();
+	scene.add(starfield);
+
 	focusObj = sunInfo.bodyMesh;
 
 	renderer.clear();
@@ -273,6 +284,9 @@ function initGUI() {
     const spaceScaleSlider = gui.add(controls, 'spaceScaleExponent', -3.5, 0).step(0.01).name('Space Scale').onChange(function(value) {
         const targetSpaceScale = Math.pow(10, value);
 		tweenSpaceScale(spaceScale, targetSpaceScale);
+		
+		// cast shadow if objects are close
+		sunLight.castShadow = value < -3;
     });
 
 	// Add a dropdown menu for focus object selection
@@ -286,15 +300,18 @@ function initGUI() {
 		if (value === "Sun") {
 			const sunRadius = sunInfo.radius;
 			newCamPos = new THREE.Vector3(2 * sunRadius, 2 * sunRadius, 2 * sunRadius);
+			camControl.minDistance = 0;
 		} else if (value === "Moon") {
 			const moonPos = focusObj.position;
 			const moonRadius = moonInfo.radius;
 			newCamPos = moonPos.clone().add(new THREE.Vector3(2 * moonRadius, 2 * moonRadius, 2 * moonRadius));
+			camControl.minDistance = moonRadius*2;
 		} else {
 			const planetPos = focusObj.position;
 			const planetIndex = planetNames.findIndex(v => v === value) - 2; // 2 = Sun and Moon
 			const planetRadius = planetsInfo[planetIndex].radius;
 			newCamPos = planetPos.clone().add(new THREE.Vector3(2 * planetRadius, 2 * planetRadius, 2 * planetRadius));
+			camControl.minDistance = planetRadius*2;
 		}
 		
 		if (newCamPos) camera.position.set(newCamPos.x, newCamPos.y, newCamPos.z);
@@ -459,6 +476,9 @@ function createBody(colorMap, specularMap, bumpMap, bumpScale, normalMap, normal
 		const ringMesh = new THREE.Mesh(geometry, material);
 		ringMesh.rotateX(Math.PI/2);
 		ringMesh.updateMatrix();
+		
+		bodyMesh.castShadow    = true;
+		ringMesh.receiveShadow = true;
 
 		group.add(ringMesh);
 	}
@@ -558,9 +578,53 @@ function tweenSpaceScale(start, end) { // function to ease transitions in change
 }
 
 // ******************************************************************** //
+// **                                                                ** //
+// ******************************************************************** //
+function getStarfield({ numStars = 2000 } = {}) {
+	function randomSpherePoint() {
+		const radius = Math.random() * 5000000 + 10000000;
+		const u = Math.random();
+		const v = Math.random();
+		const theta = 2 * Math.PI * u;
+		const phi = Math.acos(2 * v - 1);
+		let x = radius * Math.sin(phi) * Math.cos(theta);
+		let y = radius * Math.sin(phi) * Math.sin(theta);
+		let z = radius * Math.cos(phi);
+
+		return {
+		pos: new THREE.Vector3(x, y, z),
+		hue: 0.6,
+		minDist: radius,
+		};
+	}
+	const verts = [];
+	const colors = [];
+	const positions = [];
+	let col;
+	for (let i = 0; i < numStars; i += 1) {
+		let p = randomSpherePoint();
+		const { pos, hue } = p;
+		positions.push(p);
+		col = new THREE.Color().setHSL(hue, 0.2, Math.random());
+		verts.push(pos.x, pos.y, pos.z);
+		colors.push(col.r, col.g, col.b);
+	}
+	const geo = new THREE.BufferGeometry();
+	geo.setAttribute("position", new THREE.Float32BufferAttribute(verts, 3));
+	geo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+	const mat = new THREE.PointsMaterial({
+		size: 0.2,
+		vertexColors: true,
+		map: new THREE.TextureLoader().load(
+		texturePath + "circle.png"
+		),
+	});
+	const points = new THREE.Points(geo, mat);
+	return points;
+}
+
 // ******************************************************************** //
 // ******************************************************************** //
-
-
+// ******************************************************************** //
 
 main();
