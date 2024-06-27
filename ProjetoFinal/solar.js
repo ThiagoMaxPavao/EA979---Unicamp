@@ -10,8 +10,7 @@ const 	clock 		= new THREE.Clock();
 
 const texturePath = "./textures/"
 
-var 	controls, 
-		scene,
+var 	scene,
 		sunLight,
 		camera,
 		camControl,
@@ -142,7 +141,7 @@ function initGUI() {
     planetNames.unshift('Moon');
     planetNames.unshift('Sun');
 
-    var controls = {
+    let controls = {
         timeScaleExponent: 0,
         spaceScaleExponent: 0,
         focus: 'Sun',
@@ -168,32 +167,7 @@ function initGUI() {
     });
 
 	// Add a dropdown menu for focus object selection
-	gui.add(controls, 'focus', planetNames).name('Focus').onChange(function(value) {
-		const newObj = scene.getObjectByName(value);
-		if(newObj) focusObj = newObj;
-		else console.error("Focused object not found by name");
-
-		let newCamPos;
-		
-		if (value === "Sun") {
-			const sunRadius = sunInfo.radius;
-			newCamPos = new THREE.Vector3(2 * sunRadius, 2 * sunRadius, 2 * sunRadius);
-			camControl.minDistance = 0;
-		} else if (value === "Moon") {
-			const moonPos = focusObj.position;
-			const moonRadius = moonInfo.radius;
-			newCamPos = moonPos.clone().add(new THREE.Vector3(2 * moonRadius, 2 * moonRadius, 2 * moonRadius));
-			camControl.minDistance = moonRadius*2;
-		} else {
-			const planetPos = focusObj.position;
-			const planetIndex = planetNames.findIndex(v => v === value) - 2; // 2 = Sun and Moon
-			const planetRadius = planetsInfo[planetIndex].radius;
-			newCamPos = planetPos.clone().add(new THREE.Vector3(2 * planetRadius, 2 * planetRadius, 2 * planetRadius));
-			camControl.minDistance = planetRadius*2;
-		}
-		
-		if (newCamPos) camera.position.set(newCamPos.x, newCamPos.y, newCamPos.z);
-	});
+	gui.add(controls, 'focus', planetNames).name('Focus').onChange(focusOnBody);
 
     // Add a checkbox for Sun rotation
     gui.add(controls, 'sunRotation').name('Sun rotation').onChange(function(value) {
@@ -222,6 +196,34 @@ function initGUI() {
 
     // Open the GUI by default
     gui.open();
+}
+// ******************************************************************** //
+// **                                                                ** //
+// ******************************************************************** //
+function focusOnBody(value) {
+	const newObj = scene.getObjectByName(value);
+	if(newObj) focusObj = newObj;
+	else console.error("Focused object not found by name");
+
+	let newCamPos;
+
+	if (value === "Sun") {
+		const sunRadius = sunInfo.radius;
+		newCamPos = new THREE.Vector3(2 * sunRadius, 2 * sunRadius, 2 * sunRadius);
+		camControl.minDistance = 0;
+	} else if (value === "Moon") {
+		const moonPos = focusObj.position;
+		const moonRadius = moonInfo.radius;
+		newCamPos = moonPos.clone().add(new THREE.Vector3(2 * moonRadius, 2 * moonRadius, 2 * moonRadius));
+		camControl.minDistance = moonRadius*2;
+	} else {
+		const planetPos = focusObj.position;
+		const planetRadius = planetsInfo.find(planet => planet.name === value).radius;
+		newCamPos = planetPos.clone().add(new THREE.Vector3(2 * planetRadius, 2 * planetRadius, 2 * planetRadius));
+		camControl.minDistance = planetRadius*2;
+	}
+
+	if (newCamPos) camera.position.set(newCamPos.x, newCamPos.y, newCamPos.z);
 }
 
 // ******************************************************************** //
