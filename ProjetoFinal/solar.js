@@ -59,7 +59,7 @@ function main() {
 
 	// add camera
 	camera = new THREE.PerspectiveCamera( 70.0, window.innerWidth / window.innerHeight, 0.01, 10000000.0 );
-	camera.position.set(planetsInfo[7].sunDistance * 1.3, planetsInfo[7].sunDistance * 0.3, 0);
+	camera.position.set(planetsInfo[7].sunDistance * 1.3, planetsInfo[7].sunDistance * 0.3, 0); // initial cam
 	camera.updateProjectionMatrix();
 
 	camControl = new OrbitControls(camera, renderer.domElement);
@@ -72,9 +72,9 @@ function main() {
 	scene.add(new THREE.AmbientLight(0x101010))
 
 	// Create a point light to simulate the light of the sun
-	sunLight = new THREE.PointLight(0xffffff, 1, 0); // (color, intensity, distance)
+	sunLight = new THREE.PointLight(0xffffff, 1, 0);
 	sunLight.position.set(0, 0, 0);
-	sunLight.castShadow = false;
+	sunLight.castShadow = false; // only cast when planets are close
 	scene.add(sunLight);
 
 	// add objects
@@ -83,7 +83,6 @@ function main() {
 	createSun();
 
 	// add planets
-	
 	planetsInfo.forEach((info, index) => {
 
 		const [group, planet] = createBody(
@@ -124,10 +123,8 @@ function main() {
 	const starfield = getStarfield();
 	scene.add(starfield);
 
+	// initial focus = sun
 	focusObj = sunInfo.bodyMesh;
-
-	renderer.clear();
-	renderer.render(scene, camera);
 
 	requestAnimationFrame(anime);
 }
@@ -148,6 +145,7 @@ function initGUI() {
         sunRotation: true 
     };
 
+	// initial values
 	timeScale = Math.pow(10, controls.timeScaleExponent);
 	spaceScale = Math.pow(10, controls.spaceScaleExponent);
 	sunRotationEnabled = controls.sunRotation;
@@ -243,6 +241,7 @@ function anime() {
 
 	const delta = clock.getDelta();
 
+	// save camera offset to planet
 	let pos = focusObj.position;
 	vec3.subVectors(camera.position, pos);
 	
@@ -288,6 +287,7 @@ function anime() {
 	const aux2 = exp < 1.55 ? 1 : (1 - 10 * (exp-1.55))
 	moonInfo.bodyMesh.material.opacity = Math.max(aux2, 0.1);
 
+	// restore camera realtive position to focus planet, after movement
 	pos = focusObj.position;
 	camControl.object.position.copy(pos).add(vec3);
 	camControl.target.copy(pos);
